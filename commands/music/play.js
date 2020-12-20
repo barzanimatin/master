@@ -51,6 +51,7 @@ module.exports = class PlayCommand extends Command {
       { name: '3', urls: [ [Object], [Object] ] }
      ]
     */
+
     if (db.get(message.member.id) !== null) {
       const userPlaylists = db.get(message.member.id).savedPlaylists;
       let found = false;
@@ -199,7 +200,9 @@ module.exports = class PlayCommand extends Command {
     }
 
     // This if statement checks if the user entered a youtube url, it can be any kind of youtube url
-    if (query.match(/^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+/)) {
+    if (
+      query.match(/^(http(s)?:\/\/)?(m.)?((w){3}.)?youtu(be|.be)?(\.com)?\/.+/)
+    ) {
       query = query
         .replace(/(>|<)/gi, '')
         .split(/(vi\/|v=|\/v\/|youtu\.be\/|\/embed\/)/);
@@ -255,8 +258,8 @@ module.exports = class PlayCommand extends Command {
       // happens when loading a saved playlist
       queue[0].voiceChannel = message.member.voice.channel;
     }
-    if(message.guild.me.voice.channel !== null) {
-      if(message.guild.me.voice.channel.id !== queue[0].voiceChannel.id) {
+    if (message.guild.me.voice.channel !== null) {
+      if (message.guild.me.voice.channel.id !== queue[0].voiceChannel.id) {
         queue[0].voiceChannel = message.guild.me.voice.channel;
       }
     }
@@ -273,7 +276,13 @@ module.exports = class PlayCommand extends Command {
           )
           .on('start', function() {
             message.guild.musicData.songDispatcher = dispatcher;
-            dispatcher.setVolume(message.guild.musicData.volume);
+            if (!db.get(`${message.guild.id}.serverSettings.volume`))
+              dispatcher.setVolume(message.guild.musicData.volume);
+            else
+              dispatcher.setVolume(
+                db.get(`${message.guild.id}.serverSettings.volume`)
+              );
+
             const videoEmbed = new MessageEmbed()
               .setThumbnail(queue[0].thumbnail)
               .setColor('#ff0000')
