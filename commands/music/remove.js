@@ -20,7 +20,8 @@ module.exports = class RemoveSongCommand extends Command {
   }
   run(message, { songNumber }) {
     if (songNumber < 1 || songNumber >= message.guild.musicData.queue.length) {
-      return message.reply(':x: Please enter a valid song number!');
+      message.reply(':x: Please enter a valid song number!');
+      return;
     }
     var voiceChannel = message.member.voice.channel;
     if (!voiceChannel) {
@@ -36,12 +37,14 @@ module.exports = class RemoveSongCommand extends Command {
       return;
     } else if (voiceChannel.id !== message.guild.me.voice.channel.id) {
       message.reply(
-        `:no_entry: You must be in the same voice channel as the bot's in order to use that!`
+        `:no_entry: You must be in the same voice channel as the bot in order to use that!`
       );
       return;
     }
 
     message.guild.musicData.queue.splice(songNumber - 1, 1);
-    message.say(`:wastebasket: Removed song number ${songNumber} from queue!`);
+    message.reply(
+      `:wastebasket: Removed song number ${songNumber} from queue!`
+    );
   }
 };

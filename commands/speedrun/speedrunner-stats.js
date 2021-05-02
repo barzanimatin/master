@@ -34,12 +34,12 @@ module.exports = class MySplitsIOCommand extends Command {
     ).then(userRes => userRes.json());
 
     if (userRes.runners.length == 0) {
-      message.say(':x: The Runner ' + userQuery + ' was  not found.');
+      message.reply(':x: The Runner ' + userQuery + ' was  not found.');
       return;
     }
 
     if (userRes.status == 404) {
-      message.say(':x: The Runner ' + userQuery + ' was  not found.');
+      message.reply(':x: The Runner ' + userQuery + ' was  not found.');
       return;
     }
 
@@ -48,7 +48,7 @@ module.exports = class MySplitsIOCommand extends Command {
     ).then(pbsRes => pbsRes.json());
 
     if (pbsRes.length == 0) {
-      message.say(
+      message.channel.send(
         ':x: The Runner ' +
           userRes.runners[0].name +
           `s hasn't submitted any speedruns to Splits.io\n
@@ -57,7 +57,7 @@ module.exports = class MySplitsIOCommand extends Command {
       return;
     }
     if (pbsRes.status == 404) {
-      message.say(':x: The User ' + userQuery + 's stats were not found.');
+      message.reply(':x: The User ' + userQuery + 's stats were not found.');
       return;
     }
 
@@ -102,7 +102,7 @@ module.exports = class MySplitsIOCommand extends Command {
             .addField('Attempts', pbArray[i - 1].attempts, true)
             .addField('Timer Used', pbArray[i - 1].program)
             .setFooter(
-              'Powered by Splits.io! Run was submited',
+              'Powered by Splits.io! Run was submitted',
               'https://splits.io//assets/favicon/favicon-32x32-84a395f64a39ce95d7c51fecffdaa578e2277e340d47a50fdac7feb00bf3fd68.png'
             )
             .setTimestamp(pbArray[i - 1].parsed_at)
@@ -120,7 +120,7 @@ module.exports = class MySplitsIOCommand extends Command {
     }
   }
   // prettier-ignore
-  // Differant than Src Command time convertion includes ms
+  // Different than Src Command time conversion includes ms
   static convertTime(time) {
     let str, hr, min, sec, ms;
     let parts = time.toString().split('.');

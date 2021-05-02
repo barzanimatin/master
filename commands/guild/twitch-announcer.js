@@ -1,7 +1,7 @@
 const { Command } = require('discord.js-commando');
 const { MessageEmbed, MessageAttachment } = require('discord.js');
-const TwitchStatusCommand = require('../other/twitchstatus');
 const db = require('quick.db');
+const TwitchAPI = require('../../resources/twitch/twitch-api.js');
 const probe = require('probe-image-size');
 const Canvas = require('canvas');
 const {
@@ -10,10 +10,9 @@ const {
   prefix
 } = require('../../config.json');
 
-if (twitchClientID == null || twitchClientSecret == null)
-  return console.log(
-    `INFO: Twitch Commands removed from the list.\nMake sure you have twitchClientID and twitchClientSecret in your config.json to use Twitch Features`
-  );
+// Skips loading if not found in config.json
+if (!twitchClientID || !twitchClientSecret) return;
+
 module.exports = class TwitchAnnouncerCommand extends Command {
   constructor(client) {
     super(client, {
@@ -44,20 +43,24 @@ module.exports = class TwitchAnnouncerCommand extends Command {
   }
 
   async run(message, { textRaw }) {
+    // Grab DataBase 1 get
     var Twitch_DB = new db.table('Twitch_DB');
-    var textFiltered = textRaw.toLowerCase();
     const DBInfo = Twitch_DB.get(`${message.guild.id}.twitchAnnouncer`);
+
+    var textFiltered = textRaw.toLowerCase();
     var currentMsgStatus;
     var currentGame;
     var embedID;
 
     //Error Missing DB
-    if (DBInfo == undefined)
-      return message.reply(
+    if (DBInfo == undefined) {
+      message.reply(
         ':no_entry: No settings were found, please run `' +
           `${prefix}twitch-announcer-settings` +
           '` first'
       );
+      return;
+    }
 
     //Get Twitch Ready for Response Embeds
     const scope = 'user:read:email';
@@ -65,26 +68,26 @@ module.exports = class TwitchAnnouncerCommand extends Command {
     let streamInfo;
     let gameInfo;
     try {
-      access_token = await TwitchStatusCommand.getToken(
+      access_token = await TwitchAPI.getToken(
         twitchClientID,
         twitchClientSecret,
         scope
       );
     } catch (e) {
       clearInterval(Ticker);
-      message.say(':x: Twitch Announcer has stopped!\n' + e);
+      message.reply(':x: Twitch Announcer has stopped!\n' + e);
       return;
     }
 
     try {
-      var user = await TwitchStatusCommand.getUserInfo(
+      var user = await TwitchAPI.getUserInfo(
         access_token,
         twitchClientID,
         `${DBInfo.name}`
       );
     } catch (e) {
       clearInterval(Ticker);
-      message.say(':x: Twitch Announcer has stopped!\n' + e);
+      message.reply(':x: Twitch Announcer has stopped!\n' + e);
       return;
     }
 
@@ -143,24 +146,26 @@ module.exports = class TwitchAnnouncerCommand extends Command {
         .setFooter(DBInfo.savedName, DBInfo.savedAvatar)
         .setTimestamp(DBInfo.date);
     }
-    //Check Post
+
+    //Check embed trigger
     if (textFiltered == 'check') {
-      if (currentMsgStatus == 'disable') message.say(disabledEmbed);
+      if (currentMsgStatus == 'disable') message.channel.send(disabledEmbed);
       else {
-        return message.say(enabledEmbed);
+        message.channel.send(enabledEmbed);
+        return;
       }
       return;
     }
     //Disable Set
     if (textFiltered == 'disable') {
       currentMsgStatus = 'disable';
-      message.say(disabledEmbed);
+      message.channel.send(disabledEmbed);
     }
 
     //Enable Set
     if (textFiltered == 'enable') {
       currentMsgStatus = 'enable';
-      message.say(enabledEmbed);
+      message.channel.send(enabledEmbed);
 
       //Ticker Section (Loop)
       var Ticker = setInterval(async function() {
@@ -173,39 +178,39 @@ module.exports = class TwitchAnnouncerCommand extends Command {
           channel => channel.id == DBInfo.channelID
         );
         try {
-          access_token = await TwitchStatusCommand.getToken(
+          access_token = await TwitchAPI.getToken(
             twitchClientID,
             twitchClientSecret,
             scope
           );
         } catch (e) {
           clearInterval(Ticker);
-          message.say(':x: Twitch Announcer has stopped!\n' + e);
+          message.reply(':x: Twitch Announcer has stopped!\n' + e);
           return;
         }
 
         try {
-          user = await TwitchStatusCommand.getUserInfo(
+          user = await TwitchAPI.getUserInfo(
             access_token,
             twitchClientID,
             `${DBInfo.name}`
           );
         } catch (e) {
           clearInterval(Ticker);
-          message.say(':x: Twitch Announcer has stopped!\n' + e);
+          message.reply(':x: Twitch Announcer has stopped!\n' + e);
           return;
         }
 
         var user_id = user.data[0].id;
         try {
-          streamInfo = await TwitchStatusCommand.getStream(
+          streamInfo = await TwitchAPI.getStream(
             access_token,
             twitchClientID,
             user_id
           );
         } catch (e) {
           clearInterval(Ticker);
-          message.say(':x: Twitch Announcer has stopped!\n' + e);
+          message.reply(':x: Twitch Announcer has stopped!\n' + e);
           return;
         }
 
@@ -227,7 +232,7 @@ module.exports = class TwitchAnnouncerCommand extends Command {
           currentGame = streamInfo.data[0].game_name;
 
           try {
-            gameInfo = await TwitchStatusCommand.getGames(
+            gameInfo = await TwitchAPI.getGames(
               access_token,
               twitchClientID,
               streamInfo.data[0].game_id
@@ -251,7 +256,7 @@ module.exports = class TwitchAnnouncerCommand extends Command {
             );
           } catch (e) {
             clearInterval(Ticker);
-            message.say(':x: Twitch Announcer has stopped!\n' + e);
+            message.reply(':x: Twitch Announcer has stopped!\n' + e);
             return;
           }
 
@@ -272,7 +277,6 @@ module.exports = class TwitchAnnouncerCommand extends Command {
               'Stream Started',
               'https://static.twitchcdn.net/assets/favicon-32-d6025c14e900565d6177.png' // Official icon link from Twitch.tv
             )
-
             .setImage(
               streamInfo.data[0].thumbnail_url
                 .replace(/{width}x{height}/g, '1280x720')
@@ -293,13 +297,20 @@ module.exports = class TwitchAnnouncerCommand extends Command {
           }
 
           //Online Send
-          if (DBInfo.botSay.toLowerCase() != 'none') {
-            await announcedChannel.message.say(DBInfo.botSay),
+          try {
+            if (DBInfo.botSay.toLowerCase() != 'none') {
+              await announcedChannel.send(DBInfo.botSay),
+                await announcedChannel.send(onlineEmbed);
+              embedID = announcedChannel.lastMessage.id;
+            } else {
               await announcedChannel.send(onlineEmbed);
-            embedID = announcedChannel.lastMessage.id;
-          } else {
-            await announcedChannel.send(onlineEmbed);
-            embedID = announcedChannel.lastMessage.id;
+              embedID = announcedChannel.lastMessage.id;
+            }
+          } catch (error) {
+            message.reply(':x: Could not send message to channel');
+            console.log(error);
+            clearInterval(Ticker);
+            return;
           }
           currentMsgStatus = 'sent';
         }
@@ -322,6 +333,7 @@ module.exports = class TwitchAnnouncerCommand extends Command {
             )
             .setThumbnail('attachment://box_art.png');
 
+          // Incase the there is no Profile Discription
           if (!user.data[0].description == '')
             offlineEmbed
               .addField('Profile Description:', user.data[0].description)
@@ -338,17 +350,24 @@ module.exports = class TwitchAnnouncerCommand extends Command {
           }
 
           //Offline Edit
-          await announcedChannel
-            .fetchMessages({
-              around: embedID,
-              limit: 1
-            })
-            .then(msg => {
-              const fetchedMsg = msg.first();
-              fetchedMsg.edit(offlineEmbed);
-            });
+          try {
+            await announcedChannel.messages
+              .fetch({
+                around: embedID,
+                limit: 1
+              })
+              .then(msg => {
+                const fetchedMsg = msg.first();
+                fetchedMsg.edit(offlineEmbed);
+              });
+          } catch (error) {
+            message.reply(':x: Could not edit message');
+            console.log(error);
+            clearInterval(Ticker);
+            return;
+          }
         }
-      }, DBInfo.timer * 60000);
+      }, DBInfo.timer * 60000); //setInterval() is in MS and needs to be converted to minutes
     }
   }
 };

@@ -4,7 +4,7 @@ module.exports = class PauseCommand extends Command {
   constructor(client) {
     super(client, {
       name: 'pause',
-      aliases: ['pause-song', 'hold', 'stop'],
+      aliases: ['pause-song', 'hold'],
       memberName: 'pause',
       group: 'music',
       description: 'Pause the current playing song!',
@@ -14,24 +14,27 @@ module.exports = class PauseCommand extends Command {
 
   run(message) {
     var voiceChannel = message.member.voice.channel;
-    if (!voiceChannel)
-      return message.reply(
-        ':no_entry: Please join a voice channel and try again!'
-      );
+    if (!voiceChannel) {
+      message.reply(':no_entry: Please join a voice channel and try again!');
+      return;
+    }
 
     if (
       typeof message.guild.musicData.songDispatcher == 'undefined' ||
       message.guild.musicData.songDispatcher == null
     ) {
-      return message.say(':x: There is no song playing right now!');
+      message.reply(':x: There is no song playing right now!');
+      return;
     } else if (voiceChannel.id !== message.guild.me.voice.channel.id) {
       message.reply(
-        `:no_entry: You must be in the same voice channel as the bot's in order to use that!`
+        `:no_entry: You must be in the same voice channel as the bot in order to use that!`
       );
       return;
     }
 
-    message.say(':pause_button: Song was paused!');
+    message.reply(
+      ':pause_button: Song was paused! To unpause, use the resume command'
+    );
 
     message.guild.musicData.songDispatcher.pause();
   }

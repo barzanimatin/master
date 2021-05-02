@@ -7,13 +7,13 @@ module.exports = class RPSCommand extends Command {
       name: 'rps',
       aliases: ['rock-paper-scissors', 'rock'],
       group: 'other',
-      memberName: 'other',
+      memberName: 'rps',
       description: 'Rock paper scissors',
       args: [
         {
           key: 'text',
           prompt:
-            'You ready for a game of Rock, Paper, Sissors? \n What is your move?',
+            'You ready for a game of Rock, Paper, Scissors? \n What is your move?',
           type: 'string'
         }
       ]
